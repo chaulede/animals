@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>听音识动物 - 中文学习</title>
+    <style>
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; text-align: center; background-color: #f7f9fc; padding: 20px; }
+        .game-container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .animal-image { width: 100%; max-width: 250px; height: auto; border-radius: 15px; margin: 15px 0; border: 3px solid #eee; cursor: pointer; transition: transform 0.2s; }
+        .animal-image:active { transform: scale(0.95); }
+        .hint-text { color: #888; font-size: 0.9rem; margin-bottom: 20px; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        button { 
+            padding: 12px; font-size: 1.4rem; cursor: pointer; border: 2px solid #e0e0e0; 
+            background: #fff; border-radius: 10px; transition: 0.2s; 
+        }
+        button:hover { border-color: #4a90e2; background: #f0f7ff; transform: translateY(-2px); }
+        button:disabled { background: #eee; cursor: not-allowed; opacity: 0.6; }
+        .pinyin { display: block; font-size: 0.85rem; color: #666; margin-top: 4px; }
+        #feedback { height: 40px; margin-top: 20px; font-size: 1.4rem; font-weight: bold; }
+        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; z-index: 10; }
+    </style>
+</head>
+<body>
+
+<div id="start-screen">
+    <button onclick="startGame()" style="padding: 20px 40px; font-size: 2rem; background: #4a90e2; color: white;">开始游戏 🔊</button>
+</div>
+
+<div class="game-container">
+    <h1>🔊 听音选词</h1>
+    <div id="feedback"></div>
+    
+    <div onclick="playAnimalSound()">
+        <img id="target-img" src="" alt="点击听声音" class="animal-image">
+        <p class="hint-text">点击图片再听一次叫声</p>
+    </div>
+
+    <div class="options-grid" id="btn-group"></div>
+</div>
+
+<script>
+    [cite_start]// 动物数据配置 [cite: 11-20]
+    const animals = [
+        { name: '牛', pinyin: 'niú', img: 'cow.png', sound: 'cow.mp3' },
+        { name: '马', pinyin: 'mǎ', img: 'horse.png', sound: 'horse.mp3' },
+        { name: '羊', pinyin: 'yáng', img: 'sheep.png', sound: 'sheep.mp3' },
+        { name: '猪', pinyin: 'zhū', img: 'pig.png', sound: 'pig.mp3' },
+        { name: '鸡', pinyin: 'jī', img: 'rooster.png', sound: 'rooster.mp3' },
+        { name: '鸭', pinyin: 'yā', img: 'duck.png', sound: 'duck.mp3' },
+        { name: '鹅', pinyin: 'é', img: 'goose.png', sound: 'goose.mp3' },
+        { name: '兔', pinyin: 'tù', img: 'rabbit.png', sound: 'rabbit.mp3' },
+        { name: '狗', pinyin: 'gǒu', img: 'dog.png', sound: 'dog.mp3' },
+        { name: '猫', pinyin: 'māo', img: 'cat.png', sound: 'cat.mp3' }
+    ];
+
+    let current = {};
+    let canClick = true;
+
+    function startGame() {
+        document.getElementById('start-screen').style.display = 'none';
+        initRound();
+    }
+
+    function playAnimalSound() {
+        if (current.sound) {
+            // 使用相对于当前网页的路径
+            let audio = new Audio('audio/' + current.sound);
+            audio.play().catch(e => console.log("播放失败，请先点击页面任意处", e));
+        }
+    }
+
+    function initRound() {
+        canClick = true;
+        const fb = document.getElementById('feedback');
+        fb.innerText = "";
+        
+        // 随机选择动物
+        current = animals[Math.floor(Math.random() * animals.length)];
+        
+        // 确保图片路径正确
+        document.getElementById('target-img').src = 'images/' + current.img;
+        
+        // 自动播放声音 (建议稍微延迟等图片显示)
+        setTimeout(playAnimalSound, 500);
+
+        // 生成4个不重复的选择项
+        let choices = [current];
+        while (choices.length < 4) {
+            let r = animals[Math.floor(Math.random() * animals.length)];
+            if (!choices.find(x => x.name === r.name)) choices.push(r);
+        }
+        
+        // 打乱顺序
+        choices.sort(() => Math.random() - 0.5);
+
+        // 渲染按钮
+        const group = document.getElementById('btn-group');
+        group.innerHTML = "";
+        choices.forEach(item => {
+            const btn = document.createElement('button');
+            btn.innerHTML = `${item.name}<span class="pinyin">${item.pinyin}</span>`;
+            btn.onclick = () => check(item.name, btn);
+            group.appendChild(btn);
+        });
+    }
+
+    function check(selectedName, clickedBtn) {
+        if (!canClick) return;
+        
+        const fb = document.getElementById('feedback');
+        if (selectedName === current.name) {
+            canClick = false;
+            fb.innerText = "⭐ 正确！";
+            fb.style.color = "#2ecc71";
+            clickedBtn.style.borderColor = "#2ecc71";
+            clickedBtn.style.background = "#eafaf1";
+            
+            // 延迟进入下一题
+            setTimeout(initRound, 1500);
+        } else {
+            fb.innerText = "再试试看？💪";
+            fb.style.color = "#e74c3c";
+            clickedBtn.style.borderColor = "#e74c3c";
+            clickedBtn.disabled = true; // 选错后禁用该按钮
+        }
+    }
+</script>
+</body>
+</html>
