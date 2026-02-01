@@ -5,73 +5,91 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>听音识动物 - 中文学习</title>
     <style>
-        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; text-align: center; background-color: #f7f9fc; padding: 20px; }
-        .game-container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .animal-image { width: 100%; max-width: 250px; height: auto; border-radius: 15px; margin: 15px 0; border: 3px solid #eee; cursor: pointer; background: #fafafa; }
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; text-align: center; background-color: #f7f9fc; padding: 20px; margin: 0; }
+        .game-container { max-width: 500px; margin: 20px auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .animal-image { width: 100%; max-width: 250px; height: auto; border-radius: 15px; margin: 15px 0; border: 3px solid #eee; cursor: pointer; transition: transform 0.2s; }
+        .animal-image:active { transform: scale(0.95); }
         .hint-text { color: #888; font-size: 0.9rem; margin-bottom: 20px; }
         .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        button { padding: 12px; font-size: 1.4rem; cursor: pointer; border: 2px solid #e0e0e0; background: #fff; border-radius: 10px; transition: 0.2s; }
-        button:hover { border-color: #4a90e2; background: #f0f7ff; }
+        button { padding: 12px; font-size: 1.4rem; cursor: pointer; border: 2px solid #e0e0e0; background: #fff; border-radius: 10px; transition: 0.2s; outline: none; }
+        button:hover:not(:disabled) { border-color: #4a90e2; background: #f0f7ff; transform: translateY(-2px); }
+        button:disabled { background: #f9f9f9; color: #ccc; cursor: not-allowed; border-color: #eee; }
         .pinyin { display: block; font-size: 0.85rem; color: #666; margin-top: 4px; }
         #feedback { height: 40px; margin-top: 20px; font-size: 1.4rem; font-weight: bold; }
-        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: flex; align-items: center; justify-content: center; z-index: 10; }
-        .start-btn { padding: 20px 40px; font-size: 1.5rem; background: #4a90e2; color: white; border: none; border-radius: 50px; cursor: pointer; }
+        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .start-btn { padding: 20px 50px; font-size: 1.8rem; background: #4a90e2; color: white; border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 4px 15px rgba(74,144,226,0.3); }
     </style>
 </head>
 <body>
 
 <div id="start-screen">
-    <button class="start-btn" onclick="startGame()">开始游戏 🔊</button>
+    <button class="start-btn" onclick="startGame()">开始学习 🔊</button>
 </div>
 
 <div class="game-container">
     <h1>🔊 听音选词</h1>
     <div id="feedback"></div>
-    <div onclick="playAnimalSound()">
-        <img id="target-img" src="" alt="请检查 images 文件夹里的文件名" class="animal-image">
-        <p class="hint-text">点击图片重复播放叫声</p>
+    <div onclick="playSequence()">
+        <img id="target-img" src="" alt="加载中..." class="animal-image">
+        <p class="hint-text">点击图片再听一遍叫声和朗读</p>
     </div>
     <div class="options-grid" id="btn-group"></div>
 </div>
 
 <script>
+    // 动物数据配置 
     const animals = [
-        { name: '牛', pinyin: 'niú', img: 'cow.png', sound: 'cow.mp3' },
-        { name: '马', pinyin: 'mǎ', img: 'horse.png', sound: 'horse.mp3' },
-        { name: '羊', pinyin: 'yáng', img: 'sheep.png', sound: 'sheep.mp3' },
-        { name: '猪', pinyin: 'zhū', img: 'pig.png', sound: 'pig.mp3' },
-        { name: '鸡', pinyin: 'jī', img: 'rooster.png', sound: 'rooster.mp3' },
-        { name: '鸭', pinyin: 'yā', img: 'duck.png', sound: 'duck.mp3' },
-        { name: '鹅', pinyin: 'é', img: 'goose.png', sound: 'goose.mp3' },
-        { name: '兔', pinyin: 'tù', img: 'rabbit.png', sound: 'rabbit.mp3' },
         { name: '狗', pinyin: 'gǒu', img: 'dog.png', sound: 'dog.mp3' },
+        { name: '鸡', pinyin: 'jī', img: 'rooster.png', sound: 'rooster.mp3' },
+        { name: '马', pinyin: 'mǎ', img: 'horse.png', sound: 'horse.mp3' },
+        { name: '鸭', pinyin: 'yā', img: 'duck.png', sound: 'duck.mp3' },
+        { name: '牛', pinyin: 'niú', img: 'cow.png', sound: 'cow.mp3' },
+        { name: '猪', pinyin: 'zhū', img: 'pig.png', sound: 'pig.mp3' },
+        { name: '兔', pinyin: 'tù', img: 'rabbit.png', sound: 'rabbit.mp3' },
+        { name: '鹅', pinyin: 'é', img: 'goose.png', sound: 'goose.mp3' },
+        { name: '羊', pinyin: 'yáng', img: 'sheep.png', sound: 'sheep.mp3' },
         { name: '猫', pinyin: 'māo', img: 'cat.png', sound: 'cat.mp3' }
     ];
 
     let current = {};
+    let canClick = true;
+
+    // 使用系统语音合成 
+    function speak(text) {
+        const msg = new SpeechSynthesisUtterance();
+        msg.text = text;
+        msg.lang = 'zh-CN'; // 设置为中文
+        msg.rate = 0.8;    // 语速稍微慢一点
+        window.speechSynthesis.speak(msg);
+    }
 
     function startGame() {
         document.getElementById('start-screen').style.display = 'none';
         initRound();
     }
 
-    function playAnimalSound() {
-        if (current.sound) {
-            // 使用相对于当前页面的路径
-            let audio = new Audio('./audio/' + current.sound);
-            audio.play().catch(e => console.error("声音加载失败:", e));
-        }
+    // 播放序列：先播放叫声音频，结束后由系统朗读中文 
+    function playSequence() {
+        if (!current.sound) return;
+        
+        const audioSound = new Audio('./audio/' + current.sound);
+        audioSound.play().catch(e => console.log("叫声播放被拦截"));
+        
+        audioSound.onended = () => {
+            setTimeout(() => {
+                speak(current.name); // 系统朗读动物名字 
+            }, 300);
+        };
     }
 
     function initRound() {
+        canClick = true;
         document.getElementById('feedback').innerText = "";
         current = animals[Math.floor(Math.random() * animals.length)];
         
-        // 设置图片路径，增加控制台调试
-        const imgPath = './images/' + current.img;
-        document.getElementById('target-img').src = imgPath;
+        document.getElementById('target-img').src = './images/' + current.img;
         
-        setTimeout(playAnimalSound, 500);
+        setTimeout(playSequence, 500);
 
         let choices = [current];
         while (choices.length < 4) {
@@ -85,20 +103,29 @@
         choices.forEach(item => {
             const btn = document.createElement('button');
             btn.innerHTML = `${item.name}<span class="pinyin">${item.pinyin}</span>`;
-            btn.onclick = () => check(item.name);
+            btn.onclick = () => check(item.name, btn);
             group.appendChild(btn);
         });
     }
 
-    function check(selected) {
+    function check(selectedName, clickedBtn) {
+        if (!canClick) return;
         const fb = document.getElementById('feedback');
-        if (selected === current.name) {
+        
+        if (selectedName === current.name) {
+            canClick = false;
             fb.innerText = "⭐ 正确！";
             fb.style.color = "#2ecc71";
-            setTimeout(initRound, 1500);
+            clickedBtn.style.borderColor = "#2ecc71";
+            clickedBtn.style.background = "#eafaf1";
+            
+            speak(current.name); // 选对后再次朗读 
+            
+            setTimeout(initRound, 2000);
         } else {
-            fb.innerText = "再试试看？";
+            fb.innerText = "再听听看？👂";
             fb.style.color = "#e74c3c";
+            clickedBtn.disabled = true;
         }
     }
 </script>
